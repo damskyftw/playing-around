@@ -7,6 +7,7 @@ from tqdm import tqdm
 from urllib.parse import urlparse
 
 from crawler import DocumentationCrawler
+from browser_crawler import BrowserCrawler, get_page_content
 from extractor import ContentExtractor
 from storage import DocumentationStorage
 
@@ -18,7 +19,8 @@ class DocumentationScraper:
         self,
         storage_dir: str = "./scraped_docs",
         max_pages: int = 500,
-        delay: float = 0.5
+        delay: float = 0.5,
+        use_browser: bool = False
     ):
         """
         Initialize the scraper
@@ -27,13 +29,26 @@ class DocumentationScraper:
             storage_dir: Directory to store scraped documentation
             max_pages: Maximum number of pages to scrape
             delay: Delay between requests in seconds
+            use_browser: Use headless browser for bot-protected sites
         """
         self.storage = DocumentationStorage(storage_dir)
         self.extractor = ContentExtractor()
         self.max_pages = max_pages
         self.delay = delay
+        self.use_browser = use_browser
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
         }
 
     def get_site_name(self, url: str) -> str:
@@ -67,7 +82,11 @@ class DocumentationScraper:
 
         # Step 1: Crawl to discover all URLs
         print("\n[Step 1/3] Crawling to discover pages...")
-        crawler = DocumentationCrawler(url, max_pages=self.max_pages, delay=self.delay)
+        if self.use_browser:
+            print("Using browser-based crawler for bot protection bypass")
+            crawler = BrowserCrawler(url, max_pages=self.max_pages, delay=self.delay)
+        else:
+            crawler = DocumentationCrawler(url, max_pages=self.max_pages, delay=self.delay)
         urls = crawler.crawl()
 
         if not urls:
@@ -87,11 +106,15 @@ class DocumentationScraper:
         for url in tqdm(urls, desc="Extracting"):
             try:
                 # Fetch page
-                response = requests.get(url, headers=self.headers, timeout=10)
-                response.raise_for_status()
+                if self.use_browser:
+                    html = get_page_content(url)
+                else:
+                    response = requests.get(url, headers=self.headers, timeout=10)
+                    response.raise_for_status()
+                    html = response.text
 
                 # Extract content
-                page_data = self.extractor.extract(response.text, url)
+                page_data = self.extractor.extract(html, url)
 
                 # Save page
                 filename = self.storage.url_to_filename(url)

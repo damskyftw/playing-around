@@ -13,7 +13,8 @@ def cmd_scrape(args):
     scraper = DocumentationScraper(
         storage_dir=args.storage_dir,
         max_pages=args.max_pages,
-        delay=args.delay
+        delay=args.delay,
+        use_browser=args.browser
     )
 
     result = scraper.scrape(args.url, site_name=args.name)
@@ -162,6 +163,7 @@ def main():
     scrape_parser.add_argument('--name', help='Custom name for the site')
     scrape_parser.add_argument('--max-pages', type=int, default=500, help='Maximum pages to scrape (default: 500)')
     scrape_parser.add_argument('--delay', type=float, default=0.5, help='Delay between requests in seconds (default: 0.5)')
+    scrape_parser.add_argument('--browser', action='store_true', help='Use headless browser for bot-protected sites')
     scrape_parser.set_defaults(func=cmd_scrape)
 
     # List command
