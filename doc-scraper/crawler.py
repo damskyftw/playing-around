@@ -32,6 +32,11 @@ class DocumentationCrawler:
         self.base_domain = parsed.netloc
         self.base_scheme = parsed.scheme
 
+        # Headers to avoid being blocked
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
     def normalize_url(self, url: str) -> str:
         """Normalize URL by removing fragments and trailing slashes"""
         parsed = urlparse(url)
@@ -78,7 +83,7 @@ class DocumentationCrawler:
         urls = []
         for sitemap_url in sitemap_urls:
             try:
-                response = requests.get(sitemap_url, timeout=10)
+                response = requests.get(sitemap_url, headers=self.headers, timeout=10)
                 if response.status_code == 200:
                     root = ET.fromstring(response.content)
                     # Handle namespace
@@ -157,7 +162,7 @@ class DocumentationCrawler:
                 print(f"Crawling [{len(self.visited_urls) + 1}/{self.max_pages}]: {current_url}")
 
                 # Fetch the page
-                response = requests.get(current_url, timeout=10)
+                response = requests.get(current_url, headers=self.headers, timeout=10)
                 response.raise_for_status()
 
                 # Mark as visited

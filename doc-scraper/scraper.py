@@ -32,6 +32,9 @@ class DocumentationScraper:
         self.extractor = ContentExtractor()
         self.max_pages = max_pages
         self.delay = delay
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
 
     def get_site_name(self, url: str) -> str:
         """Extract a clean site name from URL"""
@@ -84,7 +87,7 @@ class DocumentationScraper:
         for url in tqdm(urls, desc="Extracting"):
             try:
                 # Fetch page
-                response = requests.get(url, timeout=10)
+                response = requests.get(url, headers=self.headers, timeout=10)
                 response.raise_for_status()
 
                 # Extract content
